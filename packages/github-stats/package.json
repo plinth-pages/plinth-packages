@@ -1,0 +1,48 @@
+{
+  "name": "@plinth-pages/github-stats",
+  "version": "0.1.0",
+  "description": "GitHub Stats for Plinth portfolios: repositories, stars, followers and top repositories.",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist",
+    "plinth.manifest.json"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./plinth.manifest.json": "./plinth.manifest.json"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "devDependencies": {
+    "@plinth-pages/integration-types": "workspace:^",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "tsup": "^8",
+    "typescript": "^5.7",
+    "vitest": "^3"
+  },
+  "keywords": [
+    "plinth",
+    "plinth-integration"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/plinth-pages/plinth-packages.git",
+    "directory": "packages/github-stats"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

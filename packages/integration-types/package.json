@@ -1,0 +1,41 @@
+{
+  "name": "@plinth-pages/integration-types",
+  "version": "0.1.0",
+  "description": "The plinth.manifest.json schema every Plinth integration package ships, and prop validation built from it.",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.24"
+  },
+  "devDependencies": {
+    "@plinth-pages/core": "workspace:^",
+    "tsup": "^8",
+    "typescript": "^5.7",
+    "vitest": "^3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/plinth-pages/plinth-packages.git",
+    "directory": "packages/integration-types"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
