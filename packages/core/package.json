@@ -1,0 +1,42 @@
+{
+  "name": "@plinth/core",
+  "version": "0.1.0",
+  "description": "The Plinth slot contract: the Slot component, the slot vocabulary, and the plinth.json schema.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./slots": {
+      "types": "./dist/slots.d.ts",
+      "import": "./dist/slots.js"
+    },
+    "./plinth-json": {
+      "types": "./dist/plinth-json.d.ts",
+      "import": "./dist/plinth-json.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"@plinth/core is exercised by @plinth/check tests\""
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "zod": "^3.24"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "react": "19.1.0",
+    "tsup": "^8",
+    "typescript": "^5.7"
+  }
+}
