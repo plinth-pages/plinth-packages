@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkSources, type CheckInput, type IssueCode } from "../src/check";
 
-const layout = `import { Slot } from "@plinth/core";
+const layout = `import { Slot } from "@plinth-pages/core";
 // plinth:imports:start
 // plinth:imports:end
 
@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 `;
 
-const page = `import { Slot } from "@plinth/core";
+const page = `import { Slot } from "@plinth-pages/core";
 // plinth:imports:start
 // plinth:imports:end
 import { Hero } from "@/components/sections/Hero";
@@ -52,14 +52,14 @@ const leetcodeManifest = JSON.stringify({
   coreVersion: "0.1.0",
   slotsVersion: 1,
   integrations: [
-    { id: "leetcode-stats", package: "@plinth/leetcode-stats", version: "1.2.0", slot: "afterProjects", props: { username: "asha" } },
+    { id: "leetcode-stats", package: "@plinth-pages/leetcode-stats", version: "1.2.0", slot: "afterProjects", props: { username: "asha" } },
   ],
 });
 
 const withLeetcode = page
   .replace(
     "// plinth:imports:start\n",
-    '// plinth:imports:start\nimport { LeetCodeStats } from "@plinth/leetcode-stats";\n',
+    '// plinth:imports:start\nimport { LeetCodeStats } from "@plinth-pages/leetcode-stats";\n',
   )
   .replace(
     '<Slot name="afterProjects"></Slot>',
@@ -156,8 +156,8 @@ describe("installed integrations", () => {
 
   it("rejects an integration import moved outside the managed region", () => {
     const moved = withLeetcode
-      .replace('import { LeetCodeStats } from "@plinth/leetcode-stats";\n', "")
-      .replace('import { Hero }', 'import { LeetCodeStats } from "@plinth/leetcode-stats";\nimport { Hero }');
+      .replace('import { LeetCodeStats } from "@plinth-pages/leetcode-stats";\n', "")
+      .replace('import { Hero }', 'import { LeetCodeStats } from "@plinth-pages/leetcode-stats";\nimport { Hero }');
     expect(codes(run({ page: moved, plinthJson: leetcodeManifest }))).toEqual(
       expect.arrayContaining(["IMPORT_OUTSIDE_REGION", "IMPORT_MISSING"]),
     );
@@ -178,10 +178,10 @@ describe("the providers slot", () => {
   const providersManifest = JSON.stringify({
     coreVersion: "0.1.0",
     slotsVersion: 1,
-    integrations: [{ id: "theme-provider", package: "@plinth/theme-provider", version: "1.0.0", slot: "providers" }],
+    integrations: [{ id: "theme-provider", package: "@plinth-pages/theme-provider", version: "1.0.0", slot: "providers" }],
   });
   const withProvider = layout
-    .replace("// plinth:imports:start\n", '// plinth:imports:start\nimport { ThemeProvider } from "@plinth/theme-provider";\n')
+    .replace("// plinth:imports:start\n", '// plinth:imports:start\nimport { ThemeProvider } from "@plinth-pages/theme-provider";\n')
     .replace("wrap={[]}", "wrap={[/* plinth:theme-provider:start */ ThemeProvider /* plinth:theme-provider:end */]}");
 
   it("accepts a declared provider in the wrap list", () => {
@@ -210,7 +210,7 @@ describe("plinth.json and the imports region", () => {
     const bad = JSON.stringify({
       coreVersion: "0.1.0",
       slotsVersion: 1,
-      integrations: [{ id: "x", package: "@plinth/x", version: "1.0.0", slot: "banner" }],
+      integrations: [{ id: "x", package: "@plinth-pages/x", version: "1.0.0", slot: "banner" }],
     });
     expect(codes(run({ plinthJson: bad }))).toEqual(["PLINTH_JSON_INVALID"]);
   });
@@ -219,7 +219,7 @@ describe("plinth.json and the imports region", () => {
     const bad = JSON.stringify({
       coreVersion: "0.1.0",
       slotsVersion: 1,
-      integrations: [{ id: "imports", package: "@plinth/x", version: "1.0.0", slot: "footer" }],
+      integrations: [{ id: "imports", package: "@plinth-pages/x", version: "1.0.0", slot: "footer" }],
     });
     expect(codes(run({ plinthJson: bad }))).toEqual(["PLINTH_JSON_INVALID"]);
   });

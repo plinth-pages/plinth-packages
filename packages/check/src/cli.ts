@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
-import { SLOT_NAMES } from "@plinth/core/slots";
+import { SLOT_NAMES } from "@plinth-pages/core/slots";
 import { checkProject } from "./check";
 
 const args = process.argv.slice(2);

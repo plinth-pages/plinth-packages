@@ -1,5 +1,5 @@
 {
-  "name": "@plinth/check",
+  "name": "@plinth-pages/check",
   "version": "0.1.0",
   "description": "`plinth check` — verifies a portfolio repository still honours the slot contract.",
   "license": "MIT",
@@ -22,16 +22,24 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@plinth/core": "^0.1.0"
+    "@plinth-pages/core": "^0.1.0"
   },
   "dependencies": {
     "ts-morph": "^26"
   },
   "devDependencies": {
-    "@plinth/core": "workspace:^",
+    "@plinth-pages/core": "workspace:^",
     "@types/node": "^20",
     "tsup": "^8",
     "typescript": "^5.7",
     "vitest": "^3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/plinth-pages/plinth-packages.git",
+    "directory": "packages/check"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

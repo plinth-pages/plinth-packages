@@ -1,5 +1,5 @@
 {
-  "name": "@plinth/core",
+  "name": "@plinth-pages/core",
   "version": "0.1.0",
   "description": "The Plinth slot contract: the Slot component, the slot vocabulary, and the plinth.json schema.",
   "license": "MIT",
@@ -25,7 +25,7 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"@plinth/core is exercised by @plinth/check tests\""
+    "test": "echo \"@plinth-pages/core is exercised by @plinth-pages/check tests\""
   },
   "peerDependencies": {
     "react": ">=18"
@@ -38,5 +38,13 @@
     "react": "19.1.0",
     "tsup": "^8",
     "typescript": "^5.7"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/plinth-pages/plinth-packages.git",
+    "directory": "packages/core"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

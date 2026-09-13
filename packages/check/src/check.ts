@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { plinthJsonSchema, type PlinthJson } from "@plinth/core/plinth-json";
-import { SLOT_FILES, SLOT_NAMES, SLOTS, isSlotName, type SlotFile, type SlotName } from "@plinth/core/slots";
+import { plinthJsonSchema, type PlinthJson } from "@plinth-pages/core/plinth-json";
+import { SLOT_FILES, SLOT_NAMES, SLOTS, isSlotName, type SlotFile, type SlotName } from "@plinth-pages/core/slots";
 import { Node, Project, ts, type JsxElement, type JsxSelfClosingElement, type SourceFile } from "ts-morph";
 
 export type IssueCode =
@@ -50,6 +50,9 @@ export interface CheckInput {
 }
 
 type Report = (code: IssueCode, file: string, message: string, line?: number) => void;
+
+/** Platform tooling in the @plinth-pages scope — never an integration. */
+const PLATFORM_PACKAGES = new Set(["@plinth-pages/core", "@plinth-pages/check"]);
 
 const MARKER = /\/\*\s*plinth:([a-z0-9]+(?:-[a-z0-9]+)*):(start|end)\b[^*]*\*\//g;
 const IMPORTS_START = /\/\/\s*plinth:imports:start\b/g;
@@ -340,7 +343,7 @@ function checkImports(source: SourceFile, file: SlotFile, manifest: PlinthJson |
     const line = declaration.getStartLineNumber();
     const inRegion = position > start && position < end;
     const isIntegration =
-      allPackages.has(root) || (root.startsWith("@plinth/") && root !== "@plinth/core");
+      allPackages.has(root) || (root.startsWith("@plinth-pages/") && !PLATFORM_PACKAGES.has(root));
 
     if (inRegion) {
       importedInRegion.add(root);

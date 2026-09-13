@@ -1,4 +1,4 @@
-// Packs @plinth/core and @plinth/check into dist-packs/ so plinth-template can install them before
+// Packs @plinth-pages/core and @plinth-pages/check into dist-packs/ so plinth-template can install them before
 // they are published to npm. `pnpm pack` has no --filter, so it runs inside each package.
 import { execSync } from "node:child_process";
 import { mkdirSync } from "node:fs";

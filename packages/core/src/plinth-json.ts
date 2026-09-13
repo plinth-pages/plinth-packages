@@ -26,7 +26,7 @@ export const plinthJsonSchema = z
     $schema: z.string().optional(),
     coreVersion: z.string().min(1),
     slotsVersion: z.number().int().positive().max(SLOTS_VERSION, {
-      message: `slotsVersion is newer than this @plinth/core supports (${SLOTS_VERSION})`,
+      message: `slotsVersion is newer than this @plinth-pages/core supports (${SLOTS_VERSION})`,
     }),
     integrations: z.array(installedIntegrationSchema),
   })

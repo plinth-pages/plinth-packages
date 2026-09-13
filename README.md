@@ -4,15 +4,15 @@ npm packages that every Plinth portfolio depends on.
 
 | Package | What | Installed as |
 |---|---|---|
-| `@plinth/core` | `<Slot>`, the slot vocabulary, the `plinth.json` schema | dependency |
-| `@plinth/check` | `plinth check` — verifies a portfolio still honours the slot contract | devDependency |
+| `@plinth-pages/core` | `<Slot>`, the slot vocabulary, the `plinth.json` schema | dependency |
+| `@plinth-pages/check` | `plinth check` — verifies a portfolio still honours the slot contract | devDependency |
 
-Integration packages (`@plinth/leetcode-stats`, …) are added here from Phase 10.
+Integration packages (`@plinth-pages/leetcode-stats`, …) are added here from Phase 10.
 
 ## Why two packages, not one
 
 `plinth check` parses TypeScript with ts-morph, which bundles the TypeScript compiler. Shipping that
-inside `@plinth/core` would put a compiler in every portfolio's production dependencies. The validator
+inside `@plinth-pages/core` would put a compiler in every portfolio's production dependencies. The validator
 is only needed in CI and in the platform's safety net, so it is a devDependency.
 
 ## Develop

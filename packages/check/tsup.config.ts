@@ -5,5 +5,5 @@ export default defineConfig({
   format: ["esm"],
   dts: { entry: "src/index.ts" },
   clean: true,
-  external: ["@plinth/core", "ts-morph"],
+  external: ["@plinth-pages/core", "ts-morph"],
 });
