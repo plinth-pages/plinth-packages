@@ -1,0 +1,29 @@
+{
+  "id": "visitor-counter",
+  "name": "Visitor Counter",
+  "description": "A simple count of visits to your portfolio. No cookies, no tracking — and it hides itself if the counter is unavailable.",
+  "category": "analytics",
+  "package": "@plinth-pages/visitor-counter",
+  "version": "0.1.0",
+  "component": {
+    "import": "VisitorCounter",
+    "kind": "element"
+  },
+  "defaultSlot": "footer",
+  "allowedSlots": ["footer", "heroAfter", "sidebar", "beforeContact"],
+  "props": [
+    {
+      "name": "label",
+      "label": "Label",
+      "type": "string",
+      "default": "visitors",
+      "maxLength": 30
+    }
+  ],
+  "injected": {
+    "siteId": "portfolioId",
+    "endpoint": "publicApiUrl"
+  },
+  "recommendedFor": ["creator", "student", "other"],
+  "homepage": "https://github.com/plinth-pages/plinth-packages/tree/main/packages/visitor-counter"
+}

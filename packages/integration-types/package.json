@@ -1,6 +1,6 @@
 {
   "name": "@plinth-pages/integration-types",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The plinth.manifest.json schema every Plinth integration package ships, and prop validation built from it.",
   "license": "MIT",
   "type": "module",

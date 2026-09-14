@@ -1,0 +1,50 @@
+{
+  "name": "@plinth-pages/contact-form",
+  "version": "0.1.0",
+  "description": "Contact Form for Plinth portfolios: messages delivered to your inbox with your own Resend key.",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist",
+    "plinth.manifest.json",
+    "templates"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./plinth.manifest.json": "./plinth.manifest.json"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "devDependencies": {
+    "@plinth-pages/integration-types": "workspace:^",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "tsup": "^8",
+    "typescript": "^5.7",
+    "vitest": "^3",
+    "@types/node": "^22"
+  },
+  "keywords": [
+    "plinth",
+    "plinth-integration"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/plinth-pages/plinth-packages.git",
+    "directory": "packages/contact-form"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

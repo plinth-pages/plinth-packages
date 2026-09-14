@@ -7,6 +7,6 @@ import { resolve } from "node:path";
 const out = resolve("dist-packs");
 mkdirSync(out, { recursive: true });
 
-for (const pkg of ["core", "check", "integration-types", "github-stats", "leetcode-stats"]) {
+for (const pkg of ["core", "check", "integration-types", "github-stats", "leetcode-stats", "contact-form", "visitor-counter"]) {
   execSync(`pnpm pack --pack-destination "${out}"`, { cwd: resolve("packages", pkg), stdio: "inherit" });
 }

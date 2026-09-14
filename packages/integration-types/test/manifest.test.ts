@@ -57,9 +57,33 @@ describe("validateManifest", () => {
     expect(issuesOf({ ...githubStats, id: "imports" }).join()).toMatch(/reserved/);
   });
 
-  it("refuses secrets and files until they are supported", () => {
-    expect(issuesOf({ ...githubStats, secrets: [{ name: "TOKEN" }] }).length).toBeGreaterThan(0);
-    expect(issuesOf({ ...githubStats, files: ["x"] }).length).toBeGreaterThan(0);
+  it("accepts secrets, server route files under the integration's own folder, and injected props", () => {
+    const result = validateManifest({
+      ...githubStats,
+      secrets: [{ env: "RESEND_API_KEY", label: "Resend API key", provider: "resend" }],
+      files: [{ path: "app/api/plinth/github-stats/route.ts", source: "templates/route.ts" }],
+      injected: { siteId: "portfolioId" },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.manifest.secrets[0]).toMatchObject({ kind: "api_key", required: true });
+  });
+
+  it("refuses secrets that would reach the browser or clash with the platform", () => {
+    expect(issuesOf({ ...githubStats, secrets: [{ env: "NEXT_PUBLIC_RESEND_KEY", label: "x" }] }).join()).toMatch(/expose/);
+    expect(issuesOf({ ...githubStats, secrets: [{ env: "VERCEL_TOKEN", label: "x" }] }).join()).toMatch(/expose|clash/);
+    expect(issuesOf({ ...githubStats, secrets: [{ env: "lowercase", label: "x" }] }).join()).toMatch(/UPPER_SNAKE_CASE/);
+    expect(issuesOf({ ...githubStats, secrets: [{ env: "A_KEY", label: "x" }, { env: "A_KEY", label: "y" }] }).join()).toMatch(/Duplicate/);
+  });
+
+  it("refuses files outside the integration's own API folder", () => {
+    expect(issuesOf({ ...githubStats, files: [{ path: "app/page.tsx", source: "templates/route.ts" }] }).join()).toMatch(/route\.ts handlers/);
+    expect(issuesOf({ ...githubStats, files: [{ path: "app/api/plinth/other/route.ts", source: "templates/route.ts" }] }).join()).toMatch(/github-stats/);
+    expect(issuesOf({ ...githubStats, files: [{ path: "app/api/plinth/github-stats/route.ts", source: "../../etc/passwd" }] }).join()).toMatch(/templates/);
+  });
+
+  it("refuses injected props that collide with user props", () => {
+    expect(issuesOf({ ...githubStats, injected: { username: "portfolioId" } }).join()).toMatch(/also a user prop/);
+    expect(issuesOf({ ...githubStats, injected: { siteId: "somethingElse" } }).length).toBeGreaterThan(0);
   });
 });
 

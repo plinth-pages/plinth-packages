@@ -1,0 +1,56 @@
+{
+  "id": "contact-form",
+  "name": "Contact Form",
+  "description": "A contact form that delivers messages to your inbox using your own Resend account. Spam-protected.",
+  "category": "contact",
+  "package": "@plinth-pages/contact-form",
+  "version": "0.1.0",
+  "component": {
+    "import": "ContactForm",
+    "kind": "element"
+  },
+  "defaultSlot": "contact",
+  "allowedSlots": ["contact", "beforeContact", "sidebar"],
+  "props": [
+    {
+      "name": "heading",
+      "label": "Heading",
+      "type": "string",
+      "default": "Send me a message",
+      "maxLength": 80
+    },
+    {
+      "name": "buttonLabel",
+      "label": "Button label",
+      "type": "string",
+      "default": "Send message",
+      "maxLength": 40
+    }
+  ],
+  "secrets": [
+    {
+      "env": "RESEND_API_KEY",
+      "label": "Resend API key",
+      "description": "Used on your site's server to send messages. Never visible in your code or to visitors.",
+      "kind": "api_key",
+      "provider": "resend",
+      "placeholder": "re_…",
+      "helpUrl": "https://resend.com/api-keys"
+    },
+    {
+      "env": "PLINTH_CONTACT_TO",
+      "label": "Send messages to",
+      "description": "Your inbox. With Resend's test sender, this must be the email on your Resend account.",
+      "kind": "email",
+      "placeholder": "you@example.com"
+    }
+  ],
+  "files": [
+    {
+      "path": "app/api/plinth/contact-form/route.ts",
+      "source": "templates/route.ts"
+    }
+  ],
+  "recommendedFor": ["freelancer", "designer", "founder", "creator"],
+  "homepage": "https://github.com/plinth-pages/plinth-packages/tree/main/packages/contact-form"
+}

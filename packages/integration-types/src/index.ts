@@ -18,6 +18,42 @@ const RESERVED_PROPS = new Set(["children", "key", "ref", "dangerouslySetInnerHT
 
 export const CATEGORIES = ["coding", "social", "writing", "analytics", "contact", "other"] as const;
 
+/** Environment variable names an integration may declare for its secrets. */
+const ENV_NAME = /^[A-Z][A-Z0-9_]{2,63}$/;
+/**
+ * Prefixes a secret may never use: `NEXT_PUBLIC_` is compiled into the browser bundle, and the others belong to the
+ * platform or the runtime.
+ */
+const FORBIDDEN_ENV_PREFIXES = ["NEXT_PUBLIC_", "VERCEL", "NODE_", "NEXT_", "PLINTH_INTERNAL_", "PORT", "PATH", "HOME"];
+
+/** Providers Plinth can verify a key with before saving it. `none` means the value is checked for format only. */
+export const SECRET_PROVIDERS = ["resend", "none"] as const;
+
+export const secretSpecSchema = z.object({
+  env: z
+    .string()
+    .regex(ENV_NAME, "Secret names are UPPER_SNAKE_CASE")
+    .refine((name) => !FORBIDDEN_ENV_PREFIXES.some((prefix) => name.startsWith(prefix)), "This name would expose the secret or clash with the platform"),
+  label: z.string().min(1).max(60),
+  description: z.string().max(200).optional(),
+  /** How the value is entered and checked. */
+  kind: z.enum(["api_key", "email", "text"]).default("api_key"),
+  provider: z.enum(SECRET_PROVIDERS).default("none"),
+  required: z.boolean().default(true),
+  placeholder: z.string().max(80).optional(),
+  /** Where the user gets the value. */
+  helpUrl: z.string().url().optional(),
+});
+
+/** A file the integration adds to the repository, copied from its package. Only server routes under its own folder. */
+export const fileSpecSchema = z.object({
+  path: z.string().regex(/^app\/api\/plinth\/[a-z0-9-]+\/(?:[a-z0-9-]+\/)*route\.ts$/, "Files may only be route.ts handlers under app/api/plinth/<id>/"),
+  source: z.string().regex(/^templates\/[a-z0-9_-]+\.ts$/, "Sources live in the package's templates/ folder"),
+});
+
+/** Values Plinth fills in at install time instead of the user. */
+export const INJECTED_VALUES = ["portfolioId", "publicApiUrl"] as const;
+
 const base = {
   name: z.string().regex(IDENTIFIER, "Prop names are identifiers").refine((n) => !RESERVED_PROPS.has(n) && !/^on[A-Z]/.test(n), {
     message: "This prop name is reserved",
@@ -85,10 +121,12 @@ export const manifestSchema = z
     defaultSlot: z.enum(SLOT_NAMES),
     allowedSlots: z.array(z.enum(SLOT_NAMES)).min(1),
     props: z.array(propSpecSchema).max(20).default([]),
-    /** Secret-backed integrations arrive with the credential vault (Phase 12). */
-    secrets: z.array(z.never()).max(0, "Secrets are not supported yet").default([]),
-    /** Extra files an integration writes into the repository. Not supported yet. */
-    files: z.array(z.never()).max(0, "Files are not supported yet").default([]),
+    /** Secrets the integration needs. Stored encrypted by Plinth, delivered only as server environment variables. */
+    secrets: z.array(secretSpecSchema).max(5).default([]),
+    /** Server files the integration adds to the repository. They read secrets from the environment, never contain them. */
+    files: z.array(fileSpecSchema).max(3).default([]),
+    /** Props Plinth fills in at install time, by prop name. The user never sees or edits them. */
+    injected: z.record(z.string().regex(IDENTIFIER), z.enum(INJECTED_VALUES)).default({}),
     /** Portfolio roles this integration is recommended for, first in the catalogue. */
     recommendedFor: z.array(z.string()).max(10).default([]),
     homepage: z.string().url().optional(),
@@ -115,10 +153,30 @@ export const manifestSchema = z
       if (names.has(prop.name)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["props", index, "name"], message: `Duplicate prop "${prop.name}"` });
       names.add(prop.name);
     });
+    Object.keys(manifest.injected).forEach((name) => {
+      if (names.has(name)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["injected", name], message: `"${name}" is also a user prop` });
+      if (RESERVED_PROPS.has(name) || /^on[A-Z]/.test(name)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["injected", name], message: "This prop name is reserved" });
+    });
+    if (providers && Object.keys(manifest.injected).length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["injected"], message: "Providers are placed by reference and can't take props" });
+    }
+    const envs = new Set<string>();
+    manifest.secrets.forEach((secret, index) => {
+      if (envs.has(secret.env)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["secrets", index, "env"], message: `Duplicate secret "${secret.env}"` });
+      envs.add(secret.env);
+    });
+    manifest.files.forEach((file, index) => {
+      if (!file.path.startsWith(`app/api/plinth/${manifest.id}/`)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["files", index, "path"], message: `Files must live under app/api/plinth/${manifest.id}/` });
+      }
+    });
   });
 
 export type IntegrationManifest = z.infer<typeof manifestSchema>;
 export type PropSpec = z.infer<typeof propSpecSchema>;
+export type SecretSpec = z.infer<typeof secretSpecSchema>;
+export type FileSpec = z.infer<typeof fileSpecSchema>;
+export type InjectedValue = (typeof INJECTED_VALUES)[number];
 export type PropValue = string | number | boolean;
 export type { SlotName };
 
