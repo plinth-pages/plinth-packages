@@ -1,7 +1,7 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { plinthJsonSchema, type PlinthJson } from "@plinth-pages/core/plinth-json";
-import { SLOT_FILES, SLOT_NAMES, SLOTS, isSlotName, type SlotFile, type SlotName } from "@plinth-pages/core/slots";
+import { SLOT_FILES, SLOT_NAMES, SLOT_SEARCH_DIRS, SLOTS, couldHoldSlots, isSlotName, type SlotFile, type SlotName } from "@plinth-pages/core/slots";
 import { Node, Project, ts, type JsxElement, type JsxSelfClosingElement, type SourceFile } from "ts-morph";
 
 export type IssueCode =
@@ -43,8 +43,11 @@ export interface CheckResult {
 }
 
 export interface CheckInput {
-  /** File contents keyed by path. A missing key means the file does not exist. */
-  files: Partial<Record<SlotFile, string>>;
+  /**
+   * File contents keyed by path. A missing key means the file does not exist. Any path under the slot search
+   * directories may hold slots: a redesign is free to move one into a component or a new page.
+   */
+  files: Record<string, string>;
   /** Raw plinth.json text, or undefined when the file does not exist. */
   plinthJson: string | undefined;
 }
@@ -68,17 +71,18 @@ export function checkSources(input: CheckInput): CheckResult {
     useInMemoryFileSystem: true,
     compilerOptions: { jsx: ts.JsxEmit.Preserve },
   });
-  const seen = new Map<SlotName, { file: SlotFile; line: number }>();
+  const seen = new Map<SlotName, { file: string; line: number }>();
 
   for (const file of SLOT_FILES) {
-    const text = input.files[file];
-    if (text === undefined) {
-      report("FILE_MISSING", file, `${file} is missing.`);
-      continue;
-    }
-    const source = project.createSourceFile(file, text, { overwrite: true });
-    checkImports(source, file, manifest, report);
+    if (input.files[file] === undefined) report("FILE_MISSING", file, `${file} is missing.`);
+  }
 
+  // Every file that could hold a slot is scanned, so moving one into a new component is legal and still validated.
+  const candidates = Object.keys(input.files).filter(couldHoldSlots).sort();
+  const sources = new Map(candidates.map((file) => [file, project.createSourceFile(file, input.files[file], { overwrite: true })]));
+
+  for (const file of candidates) {
+    const source = sources.get(file)!;
     for (const element of slotElements(source)) {
       const line = element.getStartLineNumber();
       const name = literalName(element);
@@ -89,9 +93,6 @@ export function checkSources(input: CheckInput): CheckResult {
       if (!isSlotName(name)) {
         report("SLOT_UNKNOWN", file, `"${name}" is not a slot. Valid slots: ${SLOT_NAMES.join(", ")}.`, line);
         continue;
-      }
-      if (SLOTS[name].file !== file) {
-        report("SLOT_WRONG_FILE", file, `Slot "${name}" belongs in ${SLOTS[name].file}.`, line);
       }
       const previous = seen.get(name);
       if (previous) {
@@ -111,8 +112,15 @@ export function checkSources(input: CheckInput): CheckResult {
     }
   }
 
+  // Imports come after the slots are located: which packages belong in a file follows from which slots ended up there.
+  for (const file of candidates) {
+    const slotsHere = [...seen].filter(([, where]) => where.file === file).map(([name]) => name);
+    checkImports(sources.get(file)!, file, manifest, report, slotsHere);
+  }
+
   for (const name of SLOT_NAMES) {
     const { file, description } = SLOTS[name];
+    // Reported against the file the slot started in: that is where it should be put back, wherever it went missing.
     if (!seen.has(name) && input.files[file] !== undefined) {
       report("SLOT_MISSING", file, `Slot "${name}" is missing (${description}). Every slot must appear exactly once.`);
     }
@@ -127,12 +135,32 @@ export function checkProject(root: string): CheckResult {
     const full = join(root, path);
     return existsSync(full) ? readFileSync(full, "utf8") : undefined;
   };
-  const files: Partial<Record<SlotFile, string>> = {};
-  for (const file of SLOT_FILES) {
-    const text = read(file);
-    if (text !== undefined) files[file] = text;
+  const files: Record<string, string> = {};
+  for (const path of walk(root)) {
+    const text = read(path);
+    if (text !== undefined) files[path] = text;
   }
   return checkSources({ files, plinthJson: read("plinth.json") });
+}
+
+/**
+ * Every file in the repository that could hold a slot, as repository-relative posix paths. Bounded to the slot search
+ * directories, so node_modules and .next are never walked.
+ */
+function walk(root: string): string[] {
+  const found: string[] = [...SLOT_FILES];
+  const visit = (relative: string) => {
+    const full = join(root, relative);
+    if (!existsSync(full)) return;
+    for (const entry of readdirSync(full, { withFileTypes: true })) {
+      if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+      const path = `${relative}/${entry.name}`;
+      if (entry.isDirectory()) visit(path);
+      else if (couldHoldSlots(path)) found.push(path);
+    }
+  };
+  for (const dir of SLOT_SEARCH_DIRS) visit(dir);
+  return [...new Set(found)];
 }
 
 function readManifest(text: string | undefined, report: Report): PlinthJson | undefined {
@@ -177,7 +205,7 @@ function literalName(element: JsxElement | JsxSelfClosingElement): string | unde
  * Walks a slot's children. Anything that is not whitespace, a plain comment, or content between a
  * matched pair of integration markers is unmanaged and rejected.
  */
-function scanChildren(element: JsxElement | JsxSelfClosingElement, name: SlotName, file: SlotFile, report: Report): string[] {
+function scanChildren(element: JsxElement | JsxSelfClosingElement, name: SlotName, file: string, report: Report): string[] {
   if (Node.isJsxSelfClosingElement(element)) return [];
 
   const placed: string[] = [];
@@ -230,7 +258,7 @@ function scanChildren(element: JsxElement | JsxSelfClosingElement, name: SlotNam
 }
 
 /** The providers slot wraps `{children}`; its integrations are components listed in `wrap`. */
-function scanProviders(element: JsxElement | JsxSelfClosingElement, file: SlotFile, report: Report): string[] {
+function scanProviders(element: JsxElement | JsxSelfClosingElement, file: string, report: Report): string[] {
   const line = element.getStartLineNumber();
 
   const meaningful = Node.isJsxElement(element)
@@ -288,7 +316,7 @@ function scanProviders(element: JsxElement | JsxSelfClosingElement, file: SlotFi
   return placed;
 }
 
-function compare(name: SlotName, expected: string[], placed: string[], file: SlotFile, line: number, report: Report) {
+function compare(name: SlotName, expected: string[], placed: string[], file: string, line: number, report: Report) {
   const counts = new Map<string, number>();
   for (const id of placed) counts.set(id, (counts.get(id) ?? 0) + 1);
 
@@ -310,13 +338,16 @@ function packageRoot(specifier: string): string {
   return specifier.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
 }
 
-function checkImports(source: SourceFile, file: SlotFile, manifest: PlinthJson | undefined, report: Report) {
+function checkImports(source: SourceFile, file: string, manifest: PlinthJson | undefined, report: Report, slotsHere: SlotName[]) {
   const text = source.getFullText();
   const starts = [...text.matchAll(IMPORTS_START)];
   const ends = [...text.matchAll(IMPORTS_END)];
 
   if (starts.length === 0 || ends.length === 0) {
-    report("IMPORT_REGION_MISSING", file, "The managed imports region (// plinth:imports:start … // plinth:imports:end) is missing.");
+    // The codemod writes this region the first time it puts an integration in a file, so a component that holds a
+    // slot but has nothing installed in it yet is complete without one. The template's own files always have it.
+    const required = SLOT_FILES.includes(file as SlotFile) || slotsHere.some((slot) => manifest?.integrations.some((i) => i.slot === slot));
+    if (required) report("IMPORT_REGION_MISSING", file, "The managed imports region (// plinth:imports:start … // plinth:imports:end) is missing.");
     return;
   }
   if (starts.length > 1 || ends.length > 1) {
@@ -332,7 +363,8 @@ function checkImports(source: SourceFile, file: SlotFile, manifest: PlinthJson |
 
   const allPackages = new Set(manifest?.integrations.map((i) => i.package) ?? []);
   const packagesHere = new Set(
-    manifest?.integrations.filter((i) => SLOTS[i.slot].file === file).map((i) => i.package) ?? [],
+    // Where the slot actually is, not where the template first put it.
+    manifest?.integrations.filter((i) => slotsHere.includes(i.slot)).map((i) => i.package) ?? [],
   );
   const importedInRegion = new Set<string>();
 

@@ -9,10 +9,42 @@
 
 export const SLOTS_VERSION = 1;
 
+/**
+ * Where a slot starts life in the template. It is an origin, not an address: Plinth AI may move a slot into a new
+ * component or a new page while redesigning, and an integration must still find it. Everything that looks for a slot
+ * searches `SLOT_SEARCH_DIRS` and uses this only to decide where to put a slot that is missing entirely.
+ */
 export const SLOT_FILES = ["app/layout.tsx", "app/page.tsx"] as const;
 export type SlotFile = (typeof SLOT_FILES)[number];
 
+/** Directories a portfolio may legitimately keep slots in. Anything else is not the user's own code. */
+export const SLOT_SEARCH_DIRS = ["app", "components"] as const;
+
+/** One definition of "this line is the tag for that slot", so the finder and the editor can never drift apart. */
+export function slotTagRegex(slot: string): RegExp {
+  return new RegExp(`<Slot\\s[^>]*name=["']${slot}["']`);
+}
+
+/** True for any file that could hold a slot, so callers don't each invent their own filter. */
+export function couldHoldSlots(path: string): boolean {
+  return SLOT_SEARCH_DIRS.some((dir) => path.startsWith(`${dir}/`)) && /\.(tsx|jsx)$/.test(path);
+}
+
+/**
+ * The file a slot actually lives in, by looking. Returns null when no file has it — which is what a portfolio
+ * generated before the slot existed looks like, and is the signal to add it rather than an error.
+ */
+export function findSlotFile(files: Record<string, string>, slot: string): string | null {
+  const tag = slotTagRegex(slot);
+  const candidates = Object.keys(files).filter(couldHoldSlots).sort();
+  // The template's own location wins when several files match, so a copied-out component can't capture the slot.
+  const origin = SLOTS[slot as SlotName]?.file;
+  if (origin && files[origin] !== undefined && tag.test(files[origin])) return origin;
+  return candidates.find((path) => tag.test(files[path])) ?? null;
+}
+
 export interface SlotDefinition {
+  /** Where the template puts it. Use `findSlotFile` to learn where it is now. */
   file: SlotFile;
   /** Renders no wrapper element — required where a <div> would be invalid (inside <head>). */
   bare?: boolean;
