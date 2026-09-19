@@ -70,9 +70,9 @@ const withLeetcode = page
       </Slot>`,
   );
 
-function run(overrides: { layout?: string; page?: string; plinthJson?: string | undefined }) {
+function run(overrides: { layout?: string; page?: string; plinthJson?: string | undefined; extra?: Record<string, string> }) {
   const input: CheckInput = {
-    files: { "app/layout.tsx": overrides.layout ?? layout, "app/page.tsx": overrides.page ?? page },
+    files: { "app/layout.tsx": overrides.layout ?? layout, "app/page.tsx": overrides.page ?? page, ...overrides.extra },
     plinthJson: "plinthJson" in overrides ? overrides.plinthJson : emptyManifest,
   };
   return checkSources(input);
@@ -127,12 +127,42 @@ describe("slot integrity", () => {
     expect(codes(run({ page: page.replace("</main>", '<Slot name="banner"></Slot></main>') }))).toEqual(["SLOT_UNKNOWN"]);
   });
 
-  it("rejects a slot moved into the wrong file", () => {
+  it("lets a redesign move a slot into another file", () => {
+    // A slot is an anchor for an installed integration, not an address. Moving one is how a new layout keeps them.
     const result = run({
       page: page.replace('<Slot name="sidebar"></Slot>', ""),
       layout: layout.replace('<Slot name="bodyEnd"></Slot>', '<Slot name="bodyEnd"></Slot><Slot name="sidebar"></Slot>'),
     });
-    expect(codes(result)).toEqual(["SLOT_WRONG_FILE"]);
+    expect(codes(result)).toEqual([]);
+  });
+
+  it("lets a redesign move a slot into a component it just wrote", () => {
+    const aside = `import { Slot } from "@plinth-pages/core";
+
+export function Aside() {
+  return (
+    <aside className="rounded-xl border p-6">
+      <Slot name="sidebar"></Slot>
+    </aside>
+  );
+}
+`;
+    const result = run({
+      page: page.replace('<Slot name="sidebar"></Slot>', "<Aside />"),
+      extra: { "components/Aside.tsx": aside },
+    });
+    expect(codes(result)).toEqual([]);
+  });
+
+  it("still catches a slot that went missing altogether, and one that got duplicated", () => {
+    expect(codes(run({ page: page.replace('<Slot name="sidebar"></Slot>', "") }))).toEqual(["SLOT_MISSING"]);
+    const twice = `import { Slot } from "@plinth-pages/core";
+
+export function Aside() {
+  return <Slot name="sidebar"></Slot>;
+}
+`;
+    expect(codes(run({ extra: { "components/Aside.tsx": twice } }))).toEqual(["SLOT_DUPLICATE"]);
   });
 
   it("accepts plain comments inside a slot", () => {
