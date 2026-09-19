@@ -46,6 +46,20 @@ export function findSlotFile(files: Record<string, string>, slot: string): strin
 export interface SlotDefinition {
   /** Where the template puts it. Use `findSlotFile` to learn where it is now. */
   file: SlotFile;
+  /**
+   * The SLOTS_VERSION this slot was introduced in. A portfolio records the version it was generated against, so
+   * anything newer than that is a slot its repository legitimately predates — and can be added to it.
+   */
+  since: number;
+  /**
+   * The slot to put this one after when adding it to a portfolio that predates it. A neighbouring slot survives a
+   * redesign in a way that markup does not: a page rebuilt from scratch still has its other slots, wherever they
+   * went. Without one, the slot can only be added to a portfolio whose file still looks like the template's.
+   *
+   * A slot name. Not typed as `SlotName`, which is derived from SLOTS and would make this definition circular;
+   * `isSlotName` narrows it at the point of use, and a test holds every value to a real slot.
+   */
+  after?: string;
   /** Renders no wrapper element — required where a <div> would be invalid (inside <head>). */
   bare?: boolean;
   /** Integrations here wrap the page instead of rendering beside it (context providers). */
@@ -54,17 +68,25 @@ export interface SlotDefinition {
 }
 
 export const SLOTS = {
-  head: { file: "app/layout.tsx", bare: true, description: "Scripts and tags inside <head>" },
-  bodyEnd: { file: "app/layout.tsx", bare: true, description: "Deferred scripts and widgets at the end of <body>" },
-  providers: { file: "app/layout.tsx", bare: true, wraps: true, description: "Context providers wrapping the page" },
-  heroAfter: { file: "app/page.tsx", description: "Directly below the hero" },
-  beforeProjects: { file: "app/page.tsx", description: "Above the projects section" },
-  afterProjects: { file: "app/page.tsx", description: "Below the projects section" },
-  sidebar: { file: "app/page.tsx", description: "Compact widgets" },
-  beforeContact: { file: "app/page.tsx", description: "Above the contact section" },
-  contact: { file: "app/page.tsx", description: "Contact forms" },
-  footer: { file: "app/page.tsx", description: "Inside the page footer" },
+  head: { file: "app/layout.tsx", bare: true, since: 1, description: "Scripts and tags inside <head>" },
+  bodyEnd: { file: "app/layout.tsx", bare: true, since: 1, after: "providers", description: "Deferred scripts and widgets at the end of <body>" },
+  providers: { file: "app/layout.tsx", bare: true, wraps: true, since: 1, description: "Context providers wrapping the page" },
+  heroAfter: { file: "app/page.tsx", since: 1, description: "Directly below the hero" },
+  beforeProjects: { file: "app/page.tsx", since: 1, after: "heroAfter", description: "Above the projects section" },
+  afterProjects: { file: "app/page.tsx", since: 1, after: "beforeProjects", description: "Below the projects section" },
+  sidebar: { file: "app/page.tsx", since: 1, after: "afterProjects", description: "Compact widgets" },
+  beforeContact: { file: "app/page.tsx", since: 1, after: "sidebar", description: "Above the contact section" },
+  contact: { file: "app/page.tsx", since: 1, after: "beforeContact", description: "Contact forms" },
+  footer: { file: "app/page.tsx", since: 1, after: "contact", description: "Inside the page footer" },
 } as const satisfies Record<string, SlotDefinition>;
+
+/**
+ * Slots a portfolio generated at `slotsVersion` does not know about. Everything newer than the version it records is
+ * missing because the repository predates it, not because anything went wrong — generated repos never re-sync.
+ */
+export function slotsAddedSince(slotsVersion: number): SlotName[] {
+  return SLOT_NAMES.filter((name) => SLOTS[name].since > slotsVersion);
+}
 
 export type SlotName = keyof typeof SLOTS;
 
